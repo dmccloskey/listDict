@@ -362,7 +362,7 @@ class listDict():
         # make the linearized list
         for d in data_I: #iterate through the original copy
             for vl in value_labels_I:
-                data_tmp = copy(d);
+                data_tmp = copy.copy(d);
                 data_tmp[value_key_name_I]=d[vl];
                 data_tmp[value_label_name_I]=vl;
                 data_O.append(data_tmp);
