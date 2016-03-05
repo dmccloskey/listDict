@@ -409,4 +409,240 @@ class listDict():
         data_O = numpy.zeros_like(data_I);
         for i,d in enumerate(data_I):
             data_O[i]=d[key_I];
-        return data_O;
+        return data_O;        
+
+    def convert_listDict2dataMatrixDict(self,
+                                    row_label_I,column_label_I,value_label_I,
+                                    row_variables_I=[],
+                                    column_variables_I=[],
+                                    na_str_I=None,
+                                    filter_rows_I=[],
+                                    filter_columns_I=[],
+                                    order_rows_I=[],
+                                    order_columns_I=[],
+                                    order_rowsFromTemplate_I=[],
+                                    order_columnsFromTemplate_I=[],):
+        '''convert a list of dictionary rows to a data matrix dict
+        INPUT:
+        data_I = [{}]
+        row_label_I = column_id of the row labels
+        column_label_I = column_id of the column labels
+        value_label_I = column_id of the value label
+
+        OPTIONAL INPUT:
+        row_variables_I = list of keys to add to each dictionary
+        column_variables_I = list of keys to extract out with the columns
+        na_str_I = optional string or value to pre-initialize the output data with
+        filter_rows_I = list of row labels to include
+        filter_columns_I = list of column labels to include
+        order_rows_I = list of integers defining the order of the rows
+        order_columns_I = list of integers defining the order of the rows
+        order_rowsFromTemplate_I = list of row labels defining the order of the rows
+        order_columnsFromTemplate_I = list of row labels defining the order of the rows
+
+        OUTPUT:
+        data_O = numpy.array of shape(len(row_label_unique),len(column_label_unique))
+        row_labels_O = row labels of data_O
+        column_labels_O = column labels of data_O
+
+        OPTIONAL OUTPUT:
+        row_variables_O = {"row_variables_I[0]:[...],..."} where each list is of len(row_labels_O)
+        column_variables_O = {"row_variables_I[0]:[...],..."} where each list is of len(column_labels_O)
+        '''
+        data_O = [];
+        data_I = self.listDict;
+        # get unique rows and columns
+        nrows,row_labels_O = self.get_uniqueValues(row_label_I,filter_I=filter_rows_I);
+        ncolumns,column_labels_O = self.get_uniqueValues(column_label_I,filter_I=filter_columns_I);
+        # order rows and columns
+        row_labels_O,column_labels_O = self.order_rowAndColumnLabels(row_labels_O,column_labels_O,
+                order_rows_I=order_rows_I,
+                order_columns_I=order_columns_I,
+                order_rowsFromTemplate_I=order_rowsFromTemplate_I,
+                order_columnsFromTemplate_I=order_columnsFromTemplate_I,
+                );
+        # initialize the data matrix
+        data_O = self.initialize_dataMatrixDict(rows_labels_I=row_labels_O,row_column_label_I=row_label_I,column_labels_I=column_labels_O,na_str_I=na_str_I);
+        # factor
+        row_variables_O = {};
+        if row_variables_I:
+            for cv in row_variables_I:
+                row_variables_O[cv]=[];
+        column_variables_O = {};
+        if column_variables_I:
+            for cv in column_variables_I:
+                column_variables_O[cv]=[];
+        #make the dataMatrixDict
+        cnt = 0;
+        cnt_bool = True;
+        cnt2_bool = True;
+        for r_cnt,r in enumerate(row_labels_O):
+            cnt2_bool = True;
+            for c_cnt,c in enumerate(column_labels_O):
+                for d in data_I:
+                    if d[column_label_I] == c and d[row_label_I] == r:
+                        if d[value_label_I]:
+                            data_O[r_cnt][c] = d[value_label_I];
+                            if cnt_bool and column_variables_I:
+                                for cv in column_variables_I:
+                                    column_variables_O[cv].append(d[cv]);
+                            if cnt2_bool and row_variables_I:
+                                for rv in row_variables_I:
+                                    row_variables_O[rv].append(d[rv]);
+                                cnt2_bool = False;
+                            break;
+                cnt = cnt+1
+            cnt_bool = False;
+        #return output based on input
+        if row_variables_I and column_variables_I:
+            return data_O,row_labels_O,column_labels_O,row_variables_O,column_variables_O;
+        elif row_variables_I:
+            return data_O,row_labels_O,column_labels_O,row_variables_O;
+        elif column_variables_I:
+            return data_O,row_labels_O,column_labels_O,column_variables_O;
+        else:
+            return data_O,row_labels_O,column_labels_O;
+
+    def initialize_dataMatrixDict(self,rows_labels_I,row_column_label_I,column_labels_I,na_str_I='NA'):
+        '''initialize dataMatrixDict with missing values
+        INPUT:
+        rows_labels_I = [] of strings, # of rows of data
+        row_column_label_I = string, key to use as the row labels column heading
+        column_labels_I = [] of strings, dictionary keys to use as column headings
+        na_str_I = string identifier of a missing value
+        OUTPUT:
+        dataMatrixDict_O = [{}] with nrows dictionaries each with ncolumns keys
+        '''
+        dataMatrixDict_O = [];
+
+        #initialize the data keys
+        dict_keys = [];
+        dict_keys.append(row_label_I);
+        dict_keys.extend(column_labels_O);
+
+        # set the detault value
+        if na_str_I:
+            na_str = 'NA';
+        else:
+            na_str = 0.0;
+
+        #intialize the dataMatrixDict
+        for row_label in rows_labels_I:
+            row_tmp = {k: na_str for k in dict_keys};
+            row_tmp[row_column_label_I]=row_label;
+            dataMatrixDict_O.append(row_tmp);
+
+        return dataMatrix_O;
+
+    def convert_listDict2ColumnGroupListDict(self,
+                    value_labels_I = [],
+                    column_label_I = 'sample_name',
+                    feature_labels_I = [],
+                    na_str_I=None,
+                    columnValueConnector_str_I='_-_',
+                    ):
+        '''
+        Convert a linearized listDict into a listDict with additional column labels that are unique
+        values in the group column and filled with values in the values column
+        INPUT:
+        value_labels_I = [] string, column that will be used to fill
+                            the additional columns formed by the unique values
+                            in the group column
+        column_label_I = string, unique values will form additional column labels
+        feature_labels_I = [] string, columns to be included
+        OUTPUT:
+
+        ASSUMPTIONS:
+        columnValueConnector_str_I is not a substring in any of the value_labels or in the column_label_I
+
+        '''
+        data_I = self.listDict;
+        #get unique group values
+        ncolumns_O,uniqueColumns_O = self.get_uniqueValues(column_label_I);
+        #get unique feature values
+        nfeatures_O,uniqueFeatures_O = self.get_uniqueGroups(feature_labels_I);
+        #initialize the columnGroupListDict
+        listDict_O,columnValueHeader_O = self.initialize_columnGroupListDict(
+                        uniqueFeatures_I = uniqueFeatures_O,
+                        uniqueColumns_I = uniqueColumns_O,
+                        value_labels_I = value_labels_I,
+                        feature_labels_I =feature_labels_I,
+                        na_str_I=na_str_I,
+                        columnValueConnector_str_I=columnValueConnector_str_I,
+                        );
+        #make the new listDict 
+        assert(nfeatures_O==len(listDict_O));
+        for d in data_I:
+            for cnt_feature,features in enumerate(uniqueFeatures_O):
+                d_features = {k: d[k] for k in features.keys()};
+                if d_features == features:
+                    for value in value_labels_I:
+                        key = d[column_label_I] + columnValueConnector_str_I + value;
+                        listDict_O[cnt_feature][key] = d[value];
+                    break;
+
+        return listDict_O,columnValueHeader_O;
+
+    def initialize_columnGroupListDict(self,
+                    uniqueFeatures_I = [],
+                    uniqueColumns_I = 'sample_name',
+                    value_labels_I = [],
+                    feature_labels_I = [],
+                    na_str_I='NA',
+                    columnValueConnector_str_I='_',
+                    ):
+        '''
+        Convert a linearized listDict into a listDict with additional column labels that are unique
+        values in the group column and filled with values in the values column
+        INPUT:
+        ...
+        na_str_I = default string, float, boolean, integer, etc. to fill dictionary values
+        columnValueConnector_str_I = string, connector to join the uniqueColumns label with the value_labels
+        OUTPUT:
+
+        '''
+        # make the dict keys
+        dict_keys = [];
+        dict_keys.extend(feature_labels_I);
+        columnValueHeader_O = [];
+        for column in uniqueColumns_I:
+            for value in value_labels_I:
+                column_str = column + columnValueConnector_str_I + value;
+                columnValueHeader_O.append(column_str);
+        dict_keys.extend(columnValueHeader_O);
+        # make the na_str
+        if na_str_I:
+            na_str=na_str_I;
+        else:
+            na_str=0.0;
+        # make the initial listDict
+        listDict_O = [{} for i in range(len(uniqueFeatures_I))];
+        for cnt,feature in enumerate(uniqueFeatures_I):
+            listDict_O[cnt] = copy.copy(feature);
+            for key in columnValueHeader_O:
+                listDict_O[cnt][key]=na_str_I;
+        return listDict_O,columnValueHeader_O;
+
+        
+    def get_uniqueGroups(self,keys_I,filter_I=[]):
+        '''get the unique values for a group of column keys
+        INPUT:
+        key_I = string, column key
+        TODO:
+        filter_I = list of column groups to not include in the output
+        OUTPUT:
+        ngroups_O = # of groups
+        uniqueGroups_O = list of unique groups
+        '''
+        ngroups_O=0;
+        uniqueGroups_O=[];
+
+        data_I = self.listDict;
+        # get all groups
+        data_subset = [{} for i in range(len(data_I))];
+        for cnt,d in enumerate(data_I):
+            data_subset[cnt]={k: d[k] for k in keys_I};
+        uniqueGroups_O = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in data_subset)]
+        # count the groups
+        ngroups_O = len(uniqueGroups_O);
+        return ngroups_O,uniqueGroups_O;
