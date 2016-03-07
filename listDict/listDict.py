@@ -536,10 +536,10 @@ class listDict():
 
     def convert_listDict2ColumnGroupListDict(self,
                     value_labels_I = [],
-                    column_label_I = 'sample_name',
+                    column_labels_I = [],
                     feature_labels_I = [],
                     na_str_I=None,
-                    columnValueConnector_str_I='_-_',
+                    columnValueConnector_str_I='_',
                     ):
         '''
         Convert a linearized listDict into a listDict with additional column labels that are unique
@@ -548,7 +548,7 @@ class listDict():
         value_labels_I = [] string, column that will be used to fill
                             the additional columns formed by the unique values
                             in the group column
-        column_label_I = string, unique values will form additional column labels
+        column_labels_I = [] string, unique values will form additional column labels
         feature_labels_I = [] string, columns to be included
         OUTPUT:
 
@@ -558,7 +558,7 @@ class listDict():
         '''
         data_I = self.listDict;
         #get unique group values
-        ncolumns_O,uniqueColumns_O = self.get_uniqueValues(column_label_I);
+        ncolumns_O,uniqueColumns_O = self.get_uniqueGroups(column_labels_I);
         #get unique feature values
         nfeatures_O,uniqueFeatures_O = self.get_uniqueGroups(feature_labels_I);
         #initialize the columnGroupListDict
@@ -566,6 +566,7 @@ class listDict():
                         uniqueFeatures_I = uniqueFeatures_O,
                         uniqueColumns_I = uniqueColumns_O,
                         value_labels_I = value_labels_I,
+                        column_labels_I = column_labels_I,
                         feature_labels_I =feature_labels_I,
                         na_str_I=na_str_I,
                         columnValueConnector_str_I=columnValueConnector_str_I,
@@ -577,7 +578,8 @@ class listDict():
                 d_features = {k: d[k] for k in features.keys()};
                 if d_features == features:
                     for value in value_labels_I:
-                        key = d[column_label_I] + columnValueConnector_str_I + value;
+                        key = columnValueConnector_str_I.join([d[k] for k in column_labels_I]);
+                        key += columnValueConnector_str_I + value;
                         listDict_O[cnt_feature][key] = d[value];
                     break;
 
@@ -587,6 +589,7 @@ class listDict():
                     uniqueFeatures_I = [],
                     uniqueColumns_I = 'sample_name',
                     value_labels_I = [],
+                    column_labels_I = [],
                     feature_labels_I = [],
                     na_str_I='NA',
                     columnValueConnector_str_I='_',
@@ -607,7 +610,8 @@ class listDict():
         columnValueHeader_O = [];
         for column in uniqueColumns_I:
             for value in value_labels_I:
-                column_str = column + columnValueConnector_str_I + value;
+                column_str = columnValueConnector_str_I.join([column[k] for k in column_labels_I]);
+                column_str += columnValueConnector_str_I + value;
                 columnValueHeader_O.append(column_str);
         dict_keys.extend(columnValueHeader_O);
         # make the na_str
@@ -622,7 +626,6 @@ class listDict():
             for key in columnValueHeader_O:
                 listDict_O[cnt][key]=na_str_I;
         return listDict_O,columnValueHeader_O;
-
         
     def get_uniqueGroups(self,keys_I,filter_I=[]):
         '''get the unique values for a group of column keys
