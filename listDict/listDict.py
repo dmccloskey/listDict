@@ -573,16 +573,23 @@ class listDict():
                         );
         #make the new listDict 
         assert(nfeatures_O==len(listDict_O));
+        #for d in data_I:
+        #    for cnt_feature,features in enumerate(uniqueFeatures_O):
+        #        d_features = {k: d[k] for k in features.keys()};
+        #        if d_features == features:
+        #            for value in value_labels_I:
+        #                key = columnValueConnector_str_I.join([d[k] for k in column_labels_I]);
+        #                key += columnValueConnector_str_I + value;
+        #                listDict_O[cnt_feature][key] = d[value];
+        #            break;
         for d in data_I:
-            for cnt_feature,features in enumerate(uniqueFeatures_O):
-                d_features = {k: d[k] for k in features.keys()};
-                if d_features == features:
-                    for value in value_labels_I:
-                        key = columnValueConnector_str_I.join([d[k] for k in column_labels_I]);
-                        key += columnValueConnector_str_I + value;
-                        listDict_O[cnt_feature][key] = d[value];
-                    break;
-
+            d_features = {k: d[k] for k in feature_labels_I};
+            feature_key = str(d_features.values());
+            for value in value_labels_I:
+                key = columnValueConnector_str_I.join([d[k] for k in column_labels_I]);
+                key += columnValueConnector_str_I + value;
+                listDict_O[feature_key][key] = d[value];
+        listDict_O = [v for k,v in listDict_O.items()];
         return listDict_O,columnValueHeader_O;
 
     def initialize_columnGroupListDict(self,
@@ -620,11 +627,17 @@ class listDict():
         else:
             na_str=0.0;
         # make the initial listDict
-        listDict_O = [{} for i in range(len(uniqueFeatures_I))];
+        #listDict_O = [{} for i in range(len(uniqueFeatures_I))];
+        #for cnt,feature in enumerate(uniqueFeatures_I):
+        #    listDict_O[cnt] = copy.copy(feature);
+        #    for key in columnValueHeader_O:
+        #        listDict_O[cnt][key]=na_str_I;
+        listDict_O = {};
         for cnt,feature in enumerate(uniqueFeatures_I):
-            listDict_O[cnt] = copy.copy(feature);
+            feature_key = str(feature.values());
+            listDict_O[feature_key] = copy.copy(feature);
             for key in columnValueHeader_O:
-                listDict_O[cnt][key]=na_str_I;
+                listDict_O[feature_key][key]=na_str_I;
         return listDict_O,columnValueHeader_O;
         
     def get_uniqueGroups(self,keys_I,filter_I=[]):
