@@ -190,8 +190,6 @@ class listDict():
         ncolumns,column_labels_O = self.get_uniqueValues(column_label_I);
         # order rows and columns
         row_labels_O,column_labels_O = self.order_rowAndColumnLabels(row_labels_O,column_labels_O);
-        # initialize the data list
-        data_O = self.initialize_dataMatrixList(nrows,ncolumns,na_str_I='NA');
         # factor
         row_variables_O = {};
         if row_variables_I:
@@ -201,6 +199,8 @@ class listDict():
         if column_variables_I:
             for cv in column_variables_I:
                 column_variables_O[cv]=[];
+        # initialize the data list
+        data_O = self.initialize_dataMatrixList(nrows,ncolumns,na_str_I='NA');
         #make the dataMatrixList
         cnt = 0;
         cnt_bool = True;
@@ -410,129 +410,6 @@ class listDict():
         for i,d in enumerate(data_I):
             data_O[i]=d[key_I];
         return data_O;        
-
-    def convert_listDict2dataMatrixDict(self,
-                                    row_label_I,column_label_I,value_label_I,
-                                    row_variables_I=[],
-                                    column_variables_I=[],
-                                    na_str_I=None,
-                                    filter_rows_I=[],
-                                    filter_columns_I=[],
-                                    order_rows_I=[],
-                                    order_columns_I=[],
-                                    order_rowsFromTemplate_I=[],
-                                    order_columnsFromTemplate_I=[],):
-        '''convert a list of dictionary rows to a data matrix dict
-        INPUT:
-        data_I = [{}]
-        row_label_I = column_id of the row labels
-        column_label_I = column_id of the column labels
-        value_label_I = column_id of the value label
-
-        OPTIONAL INPUT:
-        row_variables_I = list of keys to add to each dictionary
-        column_variables_I = list of keys to extract out with the columns
-        na_str_I = optional string or value to pre-initialize the output data with
-        filter_rows_I = list of row labels to include
-        filter_columns_I = list of column labels to include
-        order_rows_I = list of integers defining the order of the rows
-        order_columns_I = list of integers defining the order of the rows
-        order_rowsFromTemplate_I = list of row labels defining the order of the rows
-        order_columnsFromTemplate_I = list of row labels defining the order of the rows
-
-        OUTPUT:
-        data_O = numpy.array of shape(len(row_label_unique),len(column_label_unique))
-        row_labels_O = row labels of data_O
-        column_labels_O = column labels of data_O
-
-        OPTIONAL OUTPUT:
-        row_variables_O = {"row_variables_I[0]:[...],..."} where each list is of len(row_labels_O)
-        column_variables_O = {"row_variables_I[0]:[...],..."} where each list is of len(column_labels_O)
-        '''
-        data_O = [];
-        data_I = self.listDict;
-        # get unique rows and columns
-        nrows,row_labels_O = self.get_uniqueValues(row_label_I,filter_I=filter_rows_I);
-        ncolumns,column_labels_O = self.get_uniqueValues(column_label_I,filter_I=filter_columns_I);
-        # order rows and columns
-        row_labels_O,column_labels_O = self.order_rowAndColumnLabels(row_labels_O,column_labels_O,
-                order_rows_I=order_rows_I,
-                order_columns_I=order_columns_I,
-                order_rowsFromTemplate_I=order_rowsFromTemplate_I,
-                order_columnsFromTemplate_I=order_columnsFromTemplate_I,
-                );
-        # initialize the data matrix
-        data_O = self.initialize_dataMatrixDict(rows_labels_I=row_labels_O,row_column_label_I=row_label_I,column_labels_I=column_labels_O,na_str_I=na_str_I);
-        # factor
-        row_variables_O = {};
-        if row_variables_I:
-            for cv in row_variables_I:
-                row_variables_O[cv]=[];
-        column_variables_O = {};
-        if column_variables_I:
-            for cv in column_variables_I:
-                column_variables_O[cv]=[];
-        #make the dataMatrixDict
-        cnt = 0;
-        cnt_bool = True;
-        cnt2_bool = True;
-        for r_cnt,r in enumerate(row_labels_O):
-            cnt2_bool = True;
-            for c_cnt,c in enumerate(column_labels_O):
-                for d in data_I:
-                    if d[column_label_I] == c and d[row_label_I] == r:
-                        if d[value_label_I]:
-                            data_O[r_cnt][c] = d[value_label_I];
-                            if cnt_bool and column_variables_I:
-                                for cv in column_variables_I:
-                                    column_variables_O[cv].append(d[cv]);
-                            if cnt2_bool and row_variables_I:
-                                for rv in row_variables_I:
-                                    row_variables_O[rv].append(d[rv]);
-                                cnt2_bool = False;
-                            break;
-                cnt = cnt+1
-            cnt_bool = False;
-        #return output based on input
-        if row_variables_I and column_variables_I:
-            return data_O,row_labels_O,column_labels_O,row_variables_O,column_variables_O;
-        elif row_variables_I:
-            return data_O,row_labels_O,column_labels_O,row_variables_O;
-        elif column_variables_I:
-            return data_O,row_labels_O,column_labels_O,column_variables_O;
-        else:
-            return data_O,row_labels_O,column_labels_O;
-
-    def initialize_dataMatrixDict(self,rows_labels_I,row_column_label_I,column_labels_I,na_str_I='NA'):
-        '''initialize dataMatrixDict with missing values
-        INPUT:
-        rows_labels_I = [] of strings, # of rows of data
-        row_column_label_I = string, key to use as the row labels column heading
-        column_labels_I = [] of strings, dictionary keys to use as column headings
-        na_str_I = string identifier of a missing value
-        OUTPUT:
-        dataMatrixDict_O = [{}] with nrows dictionaries each with ncolumns keys
-        '''
-        dataMatrixDict_O = [];
-
-        #initialize the data keys
-        dict_keys = [];
-        dict_keys.append(row_label_I);
-        dict_keys.extend(column_labels_O);
-
-        # set the detault value
-        if na_str_I:
-            na_str = 'NA';
-        else:
-            na_str = 0.0;
-
-        #intialize the dataMatrixDict
-        for row_label in rows_labels_I:
-            row_tmp = {k: na_str for k in dict_keys};
-            row_tmp[row_column_label_I]=row_label;
-            dataMatrixDict_O.append(row_tmp);
-
-        return dataMatrix_O;
 
     def convert_listDict2ColumnGroupListDict(self,
                     value_labels_I = [],
