@@ -9,7 +9,7 @@ class listDict():
     '''Utility functions for converting and extracting a list of
     dictionaries into lists and arrays'''
     def __init__(self,listDict_I=None,listDict_dataFrame_I=None,listDict_pivotTable_I=None):
-        self.data=None; # of type list, numpy.array, etc.
+        self.data=None; # of type list, nparray, etc.
         if listDict_I:
             self.listDict=listDict_I;
         else:
@@ -17,11 +17,11 @@ class listDict():
         if listDict_dataFrame_I: #pandas data frame representation
             self.listDict_dataFrame=listDict_dataFrame_I;
         else:
-            self.listDict_dataFrame=[];
+            self.listDict_dataFrame=None;
         if listDict_pivotTable_I:#pandas pivot table representation
             self.listDict_pivotTable=listDict_pivotTable_I;
         else:
-            self.listDict_pivotTable=[];
+            self.listDict_pivotTable=None;
 
     def add_listDict(self,listDict_I):
         '''add a list of dictionaries'''
@@ -92,7 +92,7 @@ class listDict():
         order_columnsFromTemplate_I = list of row labels defining the order of the rows
 
         OUTPUT:
-        data_O = numpy.array of shape(len(row_label_unique),len(column_label_unique))
+        data_O = nparray of shape(len(row_label_unique),len(column_label_unique))
         row_labels_O = row labels of data_O
         column_labels_O = column labels of data_O
 
@@ -350,16 +350,6 @@ class listDict():
             if c==na_str_I:
                 mv_O += 1;
         return mv_O;
-    def count_missingValues_pivotTable(self):
-        '''count the number of occurances of a missing value in a pandas pivot table
-        INPUT:
-        OUTPUT:
-        mv_O = # of missing values
-        '''
-        mv_O = 0;
-        #check for missing values
-        mv_O = self.listDict_pivotTable.size - self.listDict_pivotTable.count().get_values().sum();
-        return mv_O;
 
     def convert_listDict2ListDictValues(self,
                     value_key_name_I = 'value',
@@ -410,9 +400,9 @@ class listDict():
         OUTPUT:
         dataMatrixList_O = list of na_str_I of length nrows_I*ncolumns_I'''
         if na_str_I:
-            dataMatrix_O = numpy.full((nrows_I,ncolumns_I), na_str_I);
+            dataMatrix_O = npfull((nrows_I,ncolumns_I), na_str_I);
         else:
-            dataMatrix_O = numpy.zeros((nrows_I,ncolumns_I));
+            dataMatrix_O = npzeros((nrows_I,ncolumns_I));
         return dataMatrix_O;
 
     def extract_arrayFromListDict(self,key_I):
@@ -424,7 +414,7 @@ class listDict():
         
         '''
         data_I = self.listDict;
-        data_O = numpy.zeros_like(data_I);
+        data_O = npzeros_like(data_I);
         for i,d in enumerate(data_I):
             data_O[i]=d[key_I];
         return data_O;        
@@ -557,6 +547,7 @@ class listDict():
         # count the groups
         ngroups_O = len(uniqueGroups_O);
         return ngroups_O,uniqueGroups_O;
+
     def convert_listDict2dataMatrixList_pd(self,
                                     row_label_I,column_label_I,value_label_I,
                                     row_variables_I=[],
@@ -580,7 +571,6 @@ class listDict():
         data_O = list of values ordered according to (len(row_label_unique),len(column_label_unique))
         row_labels_O = row labels of data_O
         column_labels_O = column labels of data_O
-        mv_O = integer, # of missing values
 
         OPTIONAL OUTPUT:
         row_variables_O = {"row_variables_I[0]:[...],..."} where each list is of len(row_labels_O)
@@ -603,6 +593,10 @@ class listDict():
         # columns are in the same order as they were initialized during the pivot
         column_variables_O = self.get_columnLabels(column_variables_I);
         column_labels_O = column_variables_O[column_label_I];
+        # check that the length of the column_labels and row_labels 
+        # are == to what they should be if only the row_label/column_label were used
+        assert(self.listDict_pivotTable.groupby(row_label_I).count()==len(row_labels_O));
+        assert(self.listDict_pivotTable.groupby(column_label_I).count()==len(column_labels_O));
         #return output based on input
         if row_variables_I and column_variables_I:
             return data_O,row_labels_O,column_labels_O,row_variables_O,column_variables_O;
@@ -622,6 +616,16 @@ class listDict():
             values=value_label_I,
             index = row_labels_I,
             columns = column_labels_I);
+    def count_missingValues_pivotTable(self):
+        '''count the number of occurances of a missing value in a pandas pivot table
+        INPUT:
+        OUTPUT:
+        mv_O = # of missing values
+        '''
+        mv_O = 0;
+        #check for missing values
+        mv_O = self.listDict_pivotTable.size - self.listDict_pivotTable.count().get_values().sum();
+        return mv_O;
     def get_dataMatrixList(self,na_str_I = None):
         '''return a flattened list matrix representation of a pandas pivot_table
         INPUT:
@@ -634,6 +638,18 @@ class listDict():
         else:
             data_O = list(self.listDict_pivotTable.get_values().ravel())
         return data_O;
+    def get_dataMatrix(self,na_str_I = None):
+        '''return a matrix representation of a pandas pivot_table
+        INPUT:
+        OPTIONAL INPUT:
+        na_str_I = optional string or value to fill missing data with
+        '''
+        #fill values with 'NA', convert to 1d numpy array, convert to list
+        if na_str_I:
+            data_O = self.listDict_pivotTable.fillna(na_str_I).get_values();
+        else:
+            data_O = self.listDict_pivotTable.get_values();
+        return data_O;
     def get_rowLabels(self,row_labels_I):
         '''return a dictionary of row labels in a pandas pivot_table
         INPUT:
@@ -644,9 +660,16 @@ class listDict():
         '''
         row_labels_O = {}
         for i,rv in enumerate(row_labels_I):
-            row_labels_O[rv] = [];
-            for g in self.listDict_pivotTable.index.unique():
-                row_labels_O[rv].append(g[i]);
+            row_labels_O[rv] = np.array([g[i] for g in self.listDict_pivotTable.index.unique()]);
+            #for g in self.listDict_pivotTable.index.unique():
+            #    row_labels_O[rv].append(g[i]);
+        return row_labels_O;
+    def get_rowLabels_asTupleArray(self):
+        '''return an array of row labels in a pandas pivot_table
+        NOTES:
+        labels are in the same order as the pivot table was instanciated
+        '''
+        row_labels_O = self.listDict_pivotTable.index.unique();
         return row_labels_O;
     def get_columnLabels(self,column_labels_I):
         '''return a dictionary of column labels in a pandas pivot_table
@@ -658,8 +681,23 @@ class listDict():
         '''
         column_labels_O = {}
         for i,cv in enumerate(column_labels_I):
-            column_labels_O[cv] = [];
-            for g in self.listDict_pivotTable.columns.unique():
-                column_labels_O[cv].append(g[i]);
+            column_labels_O[cv] = np.array([g[i] for g in self.listDict_pivotTable.columns.unique()]);
+            #for g in self.listDict_pivotTable.columns.unique():
+            #    column_labels_O[cv].append(g[i]);
         return column_labels_O;
-
+    def get_columnLabels_asTupleArray(self):
+        '''return a array of column labels in a pandas pivot_table
+        NOTES:
+        labels are in the same order as the pivot table was instanciated
+        '''
+        column_labels_O = self.listDict_pivotTable.columns.unique();
+        return column_labels_O;
+    def get_dataFrame(self,column_labels_I):
+        '''return listDict as a dataFrame
+        '''
+        return self.listDict_dataFrame;
+    def get_pivotTable(self):
+        '''
+        return listDict as a pivot table
+        '''
+        return self.listDict_pivotTable;
