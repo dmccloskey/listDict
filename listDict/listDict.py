@@ -8,57 +8,32 @@ from io_utilities.base_exportData import base_exportData
 class listDict():
     '''Utility functions for converting and extracting a list of
     dictionaries into lists and arrays'''
-    def __init__(self,listDict_I=None,listDict_dataFrame_I=None,listDict_pivotTable_I=None):
+    def __init__(self,listDict_I=None,
+            dictList_I=None,
+            record_I=None,
+            dataFrame_I=None,
+            pivotTable_I=None):
         self.data=None; # of type list, nparray, etc.
         if listDict_I:
             self.listDict=listDict_I;
         else:
             self.listDict=[];
-        if listDict_dataFrame_I: #pandas data frame representation
-            self.listDict_dataFrame=listDict_dataFrame_I;
+        if dictList_I:
+            self.dictList=dictList_I;
         else:
-            self.listDict_dataFrame=None;
-        if listDict_pivotTable_I:#pandas pivot table representation
-            self.listDict_pivotTable=listDict_pivotTable_I;
+            self.dictList={};
+        if record_I: #sql record
+            self.record=record_I;
         else:
-            self.listDict_pivotTable=None;
-
-    def add_listDict(self,listDict_I):
-        '''add a list of dictionaries'''
-        self.listDict = listDict_I;
-    def get_listDict(self):
-        '''get a list of dictionaries'''
-        return self.listDict;
-    def get_data(self):
-        '''get the data'''
-        return self.data;
-    def clear_listDict(self):
-        '''clear the list of dictionaries'''
-        self.listDict = [];
-    def clear_data(self):
-        '''clear the data'''
-        self.data = None;
-    def clear_allData(self):
-        '''clear the list of dicitonaries and the data'''
-        self.clear_listDict();
-        self.clear_data();
-    def import_listDict_csv(self,filename_I):
-        '''import a listDict from .csv
-        INPUT:
-        filename_I = string, name of the file
-        '''
-        data = base_importData();
-        data.read_csv(filename);
-        data.format_data();
-        self.add_listDict(data.data);
-        data.clear_data();
-    def export_listDict_csv(self,filename_O):
-        '''export a listDict to .csv
-        INPUT:
-        filename_O = string, name of the file
-        '''
-        export = base_exportData(self.listDict);
-        export.write_dict2csv(filename_O);
+            self.record={};
+        if dataFrame_I: #pandas data frame representation
+            self.dataFrame=dataFrame_I;
+        else:
+            self.dataFrame=None;
+        if pivotTable_I:#pandas pivot table representation
+            self.pivotTable=pivotTable_I;
+        else:
+            self.pivotTable=None;
         
     def convert_listDict2dataMatrix(self,
                                     row_label_I,column_label_I,value_label_I,
@@ -583,8 +558,8 @@ class listDict():
         column_variables = column_variables_I;
         column_variables.insert(0,column_label_I);
         #make the pandas dataframe
-        self.set_listDict_dataFrame();
-        self.set_listDict_pivotTable(value_label_I, row_variables, column_variables);
+        self.convert_listDict2DataFrame();
+        self.set_pivotTable(value_label_I, row_variables, column_variables);
         #fill values with 'NA', convert to 1d numpy array, convert to list
         data_O = self.get_dataMatrixList(na_str_I);
         #extract out rows and column variables
@@ -595,8 +570,8 @@ class listDict():
         column_labels_O = column_variables_O[column_label_I];
         # check that the length of the column_labels and row_labels 
         # are == to what they should be if only the row_label/column_label were used
-        assert(self.listDict_pivotTable.groupby(row_label_I).count()==len(row_labels_O));
-        assert(self.listDict_pivotTable.groupby(column_label_I).count()==len(column_labels_O));
+        assert(self.pivotTable.groupby(row_label_I).count()==len(row_labels_O));
+        assert(self.pivotTable.groupby(column_label_I).count()==len(column_labels_O));
         #return output based on input
         if row_variables_I and column_variables_I:
             return data_O,row_labels_O,column_labels_O,row_variables_O,column_variables_O;
@@ -607,36 +582,127 @@ class listDict():
         else:
             return data_O,row_labels_O,column_labels_O;
 
-    def set_listDict_dataFrame(self):
+    def append_dataFrame(self,dataFrame_I):
+        '''
+        add a new data column to the dataFrame
+        INPUT:
+        column_label_I = string
+        data_I = [] or numpy.array
+        '''
+        self.dataFrame=self.dataFrame.append(dataFrame_I);
+
+    #Data reset methods
+    def clear_listDict(self):
+        '''clear the list of dictionaries'''
+        self.listDict = [];
+    def clear_dictList(self):
+        '''clear the dictionary of lists'''
+        self.dictList = None;
+    def clear_dataFrame(self):
+        '''clear the dataFrame'''
+        self.dataFrame = None;
+    def clear_pivotTable(self):
+        '''clear the pivotTable'''
+        self.pivotTable = None;
+    def clear_allData(self):
+        '''clear the list of dicitonaries and the data'''
+        self.clear_listDict();
+        self.clear_dictList();
+        self.clear_dataFrame();
+        self.clear_pivotTable();
+
+    #Data io:
+    def import_listDict_csv(self,filename_I):
+        '''import a listDict from .csv
+        INPUT:
+        filename_I = string, name of the file
+        '''
+        data = base_importData();
+        data.read_csv(filename);
+        data.format_data();
+        self.add_listDict(data.data);
+        data.clear_data();
+    def export_listDict_csv(self,filename_O):
+        '''export a listDict to .csv
+        INPUT:
+        filename_O = string, name of the file
+        '''
+        export = base_exportData(self.listDict);
+        export.write_dict2csv(filename_O);
+
+    #Setters
+    def set_listDict(self,listDict_I):
+        '''add a list of dictionaries'''
+        self.listDict = listDict_I;
+    def set_dictList(self,dictList_I):
+        '''add a dictionary of lists'''
+        self.dictList = dictList_I;
+    def set_record(self,record_I):
+        '''add a sql record'''
+        self.record = record_I;
+    def set_dataFrame(self,dataFrame_I):
         '''make a pandas dataFrame from listDict'''
-        self.listDict_dataFrame = pd.DataFrame(self.listDict);
-    def set_listDict_pivotTable(self,value_label_I,row_labels_I,column_labels_I):
+        self.dataFrame=dataFrame_I;
+    def set_pivotTable(self,value_label_I,row_labels_I,column_labels_I):
         '''make a pandas pivot_table from a pandas dataFrame'''
-        self.listDict_pivotTable = self.listDict_dataFrame.pivot_table(
+        self.pivotTable = self.dataFrame.pivot_table(
             values=value_label_I,
             index = row_labels_I,
             columns = column_labels_I);
-    def count_missingValues_pivotTable(self):
-        '''count the number of occurances of a missing value in a pandas pivot table
+
+    #Getters
+    def get_listDict(self):
+        '''get a list of dictionaries'''
+        return self.listDict;
+    def get_dictList(self):
+        '''get a dictionary of lists'''
+        return self.dictList;
+    def get_record(self):
+        '''get a sql record'''
+        return self.record;
+    def get_dataFrame(self):
+        '''return dataFrame
+        '''
+        return self.dataFrame;
+    def get_pivotTable(self):
+        '''
+        return pivot table
+        '''
+        return self.pivotTable;
+
+    #Attribute conversions
+    def convert_listDict2DataFrame(self):
+        '''make a pandas dataFrame from listDict'''
+        self.dataFrame = pd.DataFrame(self.listDict);
+    def convert_record2DataFrame(self):
+        '''make a pandas dataFrame from a sql record'''
+        self.dataFrame = pd.DataFrame.from_records(self.record,columns=self.record[0].keys());
+    def convert_dictList2DataFrame(self):
+        '''make a pandas dataFrame from listDict'''
+        self.dataFrame = pd.DataFrame.from_dict(self.dictList);
+    def convert_dataFrame2ListDict(self):
+        ''' 
+        convert a dataFrame to a list of dictionaries
         INPUT:
         OUTPUT:
-        mv_O = # of missing values
+        row_O = {}
+        .where((pd.notnull(df)), None)
         '''
-        mv_O = 0;
-        #check for missing values
-        mv_O = self.listDict_pivotTable.size - self.listDict_pivotTable.count().get_values().sum();
-        return mv_O;
+        self.listDict=self.dataFrame.where((pd.notnull(self.dataFrame)), None).to_dict('records');
+
+    #Getters (specific to an attribute)
     def get_dataMatrixList(self,na_str_I = None):
         '''return a flattened list matrix representation of a pandas pivot_table
+        NOTES: this is particularly useful prior to input to R due to the use of NA
         INPUT:
         OPTIONAL INPUT:
         na_str_I = optional string or value to fill missing data with
         '''
         #fill values with 'NA', convert to 1d numpy array, convert to list
         if na_str_I:
-            data_O = list(self.listDict_pivotTable.fillna(na_str_I).get_values().ravel());
+            data_O = list(self.pivotTable.fillna(na_str_I).get_values().ravel());
         else:
-            data_O = list(self.listDict_pivotTable.get_values().ravel())
+            data_O = list(self.pivotTable.get_values().ravel())
         return data_O;
     def get_dataMatrix(self,na_str_I = None):
         '''return a matrix representation of a pandas pivot_table
@@ -646,9 +712,9 @@ class listDict():
         '''
         #fill values with 'NA', convert to 1d numpy array, convert to list
         if na_str_I:
-            data_O = self.listDict_pivotTable.fillna(na_str_I).get_values();
+            data_O = self.pivotTable.fillna(na_str_I).get_values();
         else:
-            data_O = self.listDict_pivotTable.get_values();
+            data_O = self.pivotTable.get_values();
         return data_O;
     def get_rowLabels(self,row_labels_I):
         '''return a dictionary of row labels in a pandas pivot_table
@@ -660,8 +726,8 @@ class listDict():
         '''
         row_labels_O = {}
         for i,rv in enumerate(row_labels_I):
-            row_labels_O[rv] = np.array([g[i] for g in self.listDict_pivotTable.index.unique()]);
-            #for g in self.listDict_pivotTable.index.unique():
+            row_labels_O[rv] = np.array([g[i] for g in self.pivotTable.index.unique()]);
+            #for g in self.pivotTable.index.unique():
             #    row_labels_O[rv].append(g[i]);
         return row_labels_O;
     def get_rowLabels_asTupleArray(self):
@@ -669,8 +735,29 @@ class listDict():
         NOTES:
         labels are in the same order as the pivot table was instanciated
         '''
-        row_labels_O = self.listDict_pivotTable.index.unique();
+        row_labels_O = self.pivotTable.index.unique();
         return row_labels_O;
+    def get_rowLabels_asArray(self):
+        '''return an array of row labels in a pandas pivot_table
+        NOTES:
+        labels are in the same order as the pivot table was instanciated
+        '''
+        row_labels_O = np.array([np.asarray(row) for row in self.pivotTable.index.unique()]);
+        return row_labels_O;
+    def get_rowLabels_asDataFrame(self):
+        '''return a DataFrame of row labels in a pandas pivot_table
+        NOTES:
+        labels are in the same order as the pivot table was instanciated
+        '''
+        row_labels_O = pd.DataFrame.from_records(list(self.pivotTable.index.unique()),columns=self.pivotTable.index.names);
+        return row_labels_O;
+    def get_rowLabels_asUniqueIndexes(self):
+        '''return an array from 0 to nunique indexes in a pandas pivot_table
+        NOTES:
+        labels are in the same order as the pivot table was instanciated
+        '''
+        nrow_labels_O = np.array(range(self.pivotTable.index.nunique()));
+        return nrow_labels_O;
     def get_columnLabels(self,column_labels_I):
         '''return a dictionary of column labels in a pandas pivot_table
         INPUT:
@@ -681,23 +768,164 @@ class listDict():
         '''
         column_labels_O = {}
         for i,cv in enumerate(column_labels_I):
-            column_labels_O[cv] = np.array([g[i] for g in self.listDict_pivotTable.columns.unique()]);
-            #for g in self.listDict_pivotTable.columns.unique():
-            #    column_labels_O[cv].append(g[i]);
+            column_labels_O[cv] = np.array([g[i] for g in self.pivotTable.columns.unique()]);
         return column_labels_O;
     def get_columnLabels_asTupleArray(self):
         '''return a array of column labels in a pandas pivot_table
         NOTES:
         labels are in the same order as the pivot table was instanciated
         '''
-        column_labels_O = self.listDict_pivotTable.columns.unique();
+        column_labels_O = self.pivotTable.columns.unique();
         return column_labels_O;
-    def get_dataFrame(self,column_labels_I):
-        '''return listDict as a dataFrame
+    def get_columnLabels_asArray(self):
+        '''return a array of column labels in a pandas pivot_table
+        NOTES:
+        labels are in the same order as the pivot table was instanciated
         '''
-        return self.listDict_dataFrame;
-    def get_pivotTable(self):
+        column_labels_O = np.array([np.asarray(col) for col in self.pivotTable.columns.unique()]);
+        return column_labels_O;
+    def get_columnLabels_asDataFrame(self):
+        '''return a array of column labels in a pandas pivot_table
+        NOTES:
+        labels are in the same order as the pivot table was instanciated
         '''
-        return listDict as a pivot table
+        column_labels_O = pd.DataFrame.from_records(list(self.pivotTable.columns.unique()),columns=self.pivotTable.columns.names);
+        return column_labels_O;
+    def get_columnLabels_asUniqueIndexes(self):
+        '''return a array from 0 to nunique column labels in a pandas pivot_table
+        NOTES:
+        labels are in the same order as the pivot table was instanciated
         '''
-        return self.listDict_pivotTable;
+        column_labels_O = np.array(range(self.pivotTable.columns.nunique()));
+        return column_labels_O;
+    def get_dataFrameRow_byIndex_asDict(self,row_index_I):
+        '''return a dictionary of a row index
+        INPUT:
+        row_index_I = integer
+        OUTPUT:
+        row_O = {}
+        '''
+        row_O = dict(self.dataFrame.iloc[0]);
+        return row_O;
+    def add_column2DataFrame(self,column_label_I,data_I):
+        '''
+        add a new data column to the dataFrame
+        INPUT:
+        column_label_I = string
+        data_I = [] or numpy.array
+        '''
+        if self.dataFrame is None:
+            series = pd.Series(data=data_I);
+            self.dataFrame = series.to_frame(name=column_label_I);
+        else:
+            self.dataFrame.loc[:,column_label_I] = pd.Series(data_I, index=self.dataFrame.index);
+    def get_flattenedDataAndColumnLabels(self):
+        '''
+        return a flattened list of data and corresponding column labels
+        EXAMPLE:
+        dataFrame:
+        A B
+        0 1
+        2 3
+        output:
+        data_O = [0,1,2,3];
+        column_labeles_O = ['A','B','A','B']
+
+        OUTPUT:
+        data_O = flattened array of data
+        column_labels_O = flattened array of corresponding column labels
+        '''
+        stacked = self.dataFrame.stack();
+        data_O = stacked.get_values();
+        columnLabels_df = pd.DataFrame(list(stacked.index))
+        column_labels_O = columnLabels_df[1].get_values();
+        return data_O,column_labels_O
+
+    #Utility methods
+    def count_missingValues_pivotTable(self):
+        '''count the number of occurances of a missing value in a pandas pivot table
+        INPUT:
+        OUTPUT:
+        mv_O = # of missing values
+        '''
+        mv_O = 0;
+        #check for missing values
+        mv_O = self.pivotTable.size - self.pivotTable.count().get_values().sum();
+        return mv_O;
+    def get_uniqueValues_list(self,list_I):
+        '''retrieve unique values in a list in order
+        INPUT:
+        list_I = list of values
+        '''
+        return pd.Series(list_I).unique();
+    def make_concatenatedColumn(self,
+            column_label_new_I,
+            column_labels_I,
+            connector_str_I = '__'
+            ):
+
+        '''
+        make a concatenated column from two columns
+        INPUT:
+        column_label_new_I = string, new column label
+        column_labels_I = [], list of column labels to concatenate
+        connector_str_I = string, string to connect the two columns by
+        '''
+        for i,column_label in enumerate(column_labels_I):
+            if i==0:
+                self.dataFrame[column_label_new_I] = self.dataFrame[column_label];
+            else:
+                self.dataFrame[column_label_new_I] = self.dataFrame[column_label_new_I].map(str) + connector_str_I + self.dataFrame[column_label].map(str);
+    #def split_concatenatedColumns(self,
+    #        column_label_I,
+    #        connector_str_I = '__'
+    #        ):
+    #    '''
+    #    split a concatenated column into indiviual columns
+    #    '''
+    #    column_labels = column_label_I.split(connector_str_I);
+    #    self.dataFrame['new_col1'], self.dataFrame['new_col2'] = zip(*df['original_col'].apply(lambda x: x.split(': ', 1)))
+    def change_rowAndColumnNames(self,row_names_dict_I=None,column_names_dict_I=None):
+        '''
+        change the names of multiple columns
+        INPUT:
+        row_names_dict_I = {}, k,v = old:new row label
+        column_names_dict_I = {}, k,v = old:new column label
+        '''
+        #Rename several DataFrame columns
+        self.dataFrame = self.dataFrame.rename(
+            index = row_names_dict_I,
+            columns = column_names_dict_I
+            );
+    def make_dummyIndexColumn(self,column_index_I,column_label_I,col2index_I=None):
+        '''
+        Create a dummy index column based on the unique values in the specific column
+        INPUT:
+        column_index_I = string, name of the index column
+        column_label_I = string, name of the column to create the dummy label
+        '''
+        if col2index_I is None:
+            unique = self.dataFrame[column_label_I].unique();
+            unique.sort();
+            col2index = {v:i for i,v in enumerate(unique)}
+        else:
+            col2index = col2index_I;
+        index = [col2index[v] for v in self.dataFrame[column_label_I].get_values()];
+        self.add_column2DataFrame(column_index_I,index);
+    #Filter methods
+    def filterIn_byDictList(self,dictList_I):
+        '''filter in data that is in a list
+        INPUT:
+        dictList_I = {'column_label':[items to filter in...]}
+        '''
+        for k,v in dictList_I.items():
+            if v:
+                self.dataFrame = self.dataFrame[self.dataFrame[k].isin(v)];
+    def filterOut_byDictList(self,dictList_I):
+        '''filter out data that is not in a list
+        INPUT:
+        dictList_I = {'column_label':[items to filter out...]}
+        '''
+        for k,v in dictList_I.items():
+            if v:
+                self.dataFrame = self.dataFrame[~self.dataFrame[k].isin(v)];
