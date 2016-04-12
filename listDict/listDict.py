@@ -570,8 +570,11 @@ class listDict():
         column_labels_O = column_variables_O[column_label_I];
         # check that the length of the column_labels and row_labels 
         # are == to what they should be if only the row_label/column_label were used
-        assert(self.pivotTable.groupby(row_label_I).count()==len(row_labels_O));
-        assert(self.pivotTable.groupby(column_label_I).count()==len(column_labels_O));
+        assert(len(self.dataFrame.groupby([row_label_I]))==len(row_labels_O));
+        assert(len(self.dataFrame.groupby([column_label_I]))==len(column_labels_O));
+        ##Broken (works only if len(column_variables/row_variables)==1
+        #assert(self.pivotTable.groupby([row_label_I]).count()==len(row_labels_O));
+        #assert(self.pivotTable.groupby([column_label_I]).count()==len(column_labels_O));
         #return output based on input
         if row_variables_I and column_variables_I:
             return data_O,row_labels_O,column_labels_O,row_variables_O,column_variables_O;
