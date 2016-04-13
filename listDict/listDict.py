@@ -326,35 +326,6 @@ class listDict():
                 mv_O += 1;
         return mv_O;
 
-    def convert_listDict2ListDictValues(self,
-                    value_key_name_I = 'value',
-                    value_label_name_I = 'label',
-                    value_labels_I=['var_proportion','var_cumulative']):
-        '''linearize a list of dictionaries by seriesLabels
-        to a linearized version for a multiseries bi plot
-
-        INPUT:
-        value_labels_I = list of table columns to use as individual values
-        OUTPUT:
-        data_O = list of dictionaries of len(listDict)*len(value_labels_I)
-            with additional keys "value" = value of value_labels_I[i]
-                                 "value_label" = value_labels_I[i]
-        '''
-        data_I = self.listDict;
-        data_O = [];
-        # make the linearized list
-        for d in data_I: #iterate through the original copy
-            for vl in value_labels_I:
-                data_tmp = copy.copy(d);
-                data_tmp[value_key_name_I]=d[vl];
-                data_tmp[value_label_name_I]=vl;
-                data_O.append(data_tmp);
-        # remove the value_label keys
-        for d in data_O:
-            for vl in value_labels_I:
-                del d[vl]
-        return data_O;
-
     def initialize_dataMatrixList(self,nrows_I,ncolumns_I,na_str_I='NA'):
         '''initialize dataMatrixList with missing values
         INPUT:
@@ -523,68 +494,6 @@ class listDict():
         ngroups_O = len(uniqueGroups_O);
         return ngroups_O,uniqueGroups_O;
 
-    def convert_listDict2dataMatrixList_pd(self,
-                                    row_label_I,column_label_I,value_label_I,
-                                    row_variables_I=[],
-                                    column_variables_I=[],
-                                    na_str_I="NA",
-
-                                    ):
-        '''convert a list of dictionary rows to a numpy array
-        INPUT:
-        data_I = [{}]
-        row_label_I = column_id of the row labels
-        column_label_I = column_id of the column labels
-        value_label_I = column_id of the value label
-
-        OPTIONAL INPUT:
-        row_variables_I = list of keys to extract out with the rows
-        column_variables_I = list of keys to extract out with the columns
-        na_str_I = optional string or value to pre-initialize the output data with
-
-        OUTPUT:
-        data_O = list of values ordered according to (len(row_label_unique),len(column_label_unique))
-        row_labels_O = row labels of data_O
-        column_labels_O = column labels of data_O
-
-        OPTIONAL OUTPUT:
-        row_variables_O = {"row_variables_I[0]:[...],..."} where each list is of len(row_labels_O)
-        column_variables_O = {"row_variables_I[0]:[...],..."} where each list is of len(column_labels_O)
-        '''
-        data_O = [];
-        #handle the input to pandas
-        row_variables = row_variables_I;
-        row_variables.insert(0,row_label_I);
-        column_variables = column_variables_I;
-        column_variables.insert(0,column_label_I);
-        #make the pandas dataframe
-        self.convert_listDict2DataFrame();
-        self.set_pivotTable(value_label_I, row_variables, column_variables);
-        #fill values with 'NA', convert to 1d numpy array, convert to list
-        data_O = self.get_dataMatrixList(na_str_I);
-        #extract out rows and column variables
-        row_variables_O = self.get_rowLabels(row_variables_I);
-        row_labels_O = row_variables_O[row_label_I];
-        # columns are in the same order as they were initialized during the pivot
-        column_variables_O = self.get_columnLabels(column_variables_I);
-        column_labels_O = column_variables_O[column_label_I];
-        # check that the length of the column_labels and row_labels 
-        # are == to what they should be if only the row_label/column_label were used
-        assert(len(self.dataFrame.groupby([row_label_I]))==len(row_labels_O));
-        assert(len(self.dataFrame.groupby([column_label_I]))==len(column_labels_O));
-        ##Broken (works only if len(column_variables/row_variables)==1
-        #assert(self.pivotTable.groupby([row_label_I]).count()==len(row_labels_O));
-        #assert(self.pivotTable.groupby([column_label_I]).count()==len(column_labels_O));
-        #return output based on input
-        if row_variables_I and column_variables_I:
-            return data_O,row_labels_O,column_labels_O,row_variables_O,column_variables_O;
-        elif row_variables_I:
-            return data_O,row_labels_O,column_labels_O,row_variables_O;
-        elif column_variables_I:
-            return data_O,row_labels_O,column_labels_O,column_variables_O;
-        else:
-            return data_O,row_labels_O,column_labels_O;
-
     def append_dataFrame(self,dataFrame_I):
         '''
         add a new data column to the dataFrame
@@ -692,6 +601,34 @@ class listDict():
         .where((pd.notnull(df)), None)
         '''
         self.listDict=self.dataFrame.where((pd.notnull(self.dataFrame)), None).to_dict('records');
+    def convert_listDict2ListDictValues(self,
+                    value_key_name_I = 'value',
+                    value_label_name_I = 'label',
+                    value_labels_I=['var_proportion','var_cumulative']):
+        '''linearize a list of dictionaries by seriesLabels
+        to a linearized version for a multiseries bi plot
+
+        INPUT:
+        value_labels_I = list of table columns to use as individual values
+        OUTPUT:
+        data_O = list of dictionaries of len(listDict)*len(value_labels_I)
+            with additional keys "value" = value of value_labels_I[i]
+                                 "value_label" = value_labels_I[i]
+        '''
+        data_I = self.listDict;
+        data_O = [];
+        # make the linearized list
+        for d in data_I: #iterate through the original copy
+            for vl in value_labels_I:
+                data_tmp = copy.copy(d);
+                data_tmp[value_key_name_I]=d[vl];
+                data_tmp[value_label_name_I]=vl;
+                data_O.append(data_tmp);
+        # remove the value_label keys
+        for d in data_O:
+            for vl in value_labels_I:
+                del d[vl]
+        return data_O;
 
     #Getters (specific to an attribute)
     def get_dataMatrixList(self,na_str_I = None):
@@ -844,6 +781,35 @@ class listDict():
         column_labels_O = columnLabels_df[1].get_values();
         return data_O,column_labels_O
 
+    #Sorting methods
+    def order_indexFromTemplate_pivotTable(self,template_I,axis_I):
+        '''re-order a column/row from a template
+        INPUT:
+        template_I = [], strings listing the labels in the desired order
+        axis_I = integer, 0=rows, 1=columns
+        OUTPUT:
+        '''
+        mi = pd.Index(template_I);
+        self.pivotTable.reindex_axis(mi,axis_I);
+
+    #Filter methods
+    def filterIn_byDictList(self,dictList_I):
+        '''filter in data that is in a list
+        INPUT:
+        dictList_I = {'column_label':[items to filter in...]}
+        '''
+        for k,v in dictList_I.items():
+            if v:
+                self.dataFrame = self.dataFrame[self.dataFrame[k].isin(v)];
+    def filterOut_byDictList(self,dictList_I):
+        '''filter out data that is not in a list
+        INPUT:
+        dictList_I = {'column_label':[items to filter out...]}
+        '''
+        for k,v in dictList_I.items():
+            if v:
+                self.dataFrame = self.dataFrame[~self.dataFrame[k].isin(v)];
+
     #Utility methods
     def count_missingValues_pivotTable(self):
         '''count the number of occurances of a missing value in a pandas pivot table
@@ -915,20 +881,111 @@ class listDict():
             col2index = col2index_I;
         index = [col2index[v] for v in self.dataFrame[column_label_I].get_values()];
         self.add_column2DataFrame(column_index_I,index);
-    #Filter methods
-    def filterIn_byDictList(self,dictList_I):
-        '''filter in data that is in a list
-        INPUT:
-        dictList_I = {'column_label':[items to filter in...]}
+
+    def convert_dictListListDict2ListDict(self,data_I):
+        '''flatten a dictionary of listDicts to a listDict
+        {key:[{},...],...} -> [[{},...],...] -> [{},...]
+        NOTES:
+        the 'key' is lost
         '''
-        for k,v in dictList_I.items():
-            if v:
-                self.dataFrame = self.dataFrame[self.dataFrame[k].isin(v)];
-    def filterOut_byDictList(self,dictList_I):
-        '''filter out data that is not in a list
+        data1 = [v for v in data_I.values()];
+        data2=[];
+        for d in data1:
+            data2.extend(d);
+        return data2;
+
+    #Bulk methods
+    def convert_listDict2dataMatrixList_pd(self,
+                row_label_I,column_label_I,value_label_I,
+                row_variables_I=[],
+                column_variables_I=[],
+                na_str_I="NA",
+                filter_rows_I=[],
+                filter_columns_I=[],
+                order_rowsFromTemplate_I=[],
+                order_columnsFromTemplate_I=[],
+                                    ):
+        '''convert a list of dictionary rows to a numpy array
         INPUT:
-        dictList_I = {'column_label':[items to filter out...]}
+        data_I = [{}]
+        row_label_I = column_id of the row labels
+        column_label_I = column_id of the column labels
+        value_label_I = column_id of the value label
+
+        OPTIONAL INPUT:
+        row_variables_I = list of keys to extract out with the rows
+        column_variables_I = list of keys to extract out with the columns
+        na_str_I = optional string or value to pre-initialize the output data with
+        filter_rows_I = list of row labels to include
+        filter_columns_I = list of column labels to include
+        order_rows_I = list of integers defining the order of the rows
+        order_columns_I = list of integers defining the order of the rows
+        order_rowsFromTemplate_I = list of row labels defining the order of the rows
+        order_columnsFromTemplate_I = list of row labels defining the order of the rows
+
+        OUTPUT:
+        data_O = list of values ordered according to (len(row_label_unique),len(column_label_unique))
+        row_labels_O = row labels of data_O
+        column_labels_O = column labels of data_O
+
+        OPTIONAL OUTPUT:
+        row_variables_O = {"row_variables_I[0]:[...],..."} where each list is of len(row_labels_O)
+        column_variables_O = {"row_variables_I[0]:[...],..."} where each list is of len(column_labels_O)
         '''
-        for k,v in dictList_I.items():
-            if v:
-                self.dataFrame = self.dataFrame[~self.dataFrame[k].isin(v)];
+
+        data_O = [];
+
+        #handle the input to pandas
+        row_variables = row_variables_I;
+        row_variables.insert(0,row_label_I);
+        column_variables = column_variables_I;
+        column_variables.insert(0,column_label_I);
+
+        #make the pandas dataframe
+        self.convert_listDict2DataFrame();
+
+        #filter in rows/columns
+        if filter_rows_I:
+            data_listDict.filterIn_byDictList({row_label_I:filter_rows_I,
+                                           });
+        if filter_columns_I:
+            data_listDict.filterIn_byDictList({column_label_I:filter_columns_I,
+                                           });
+        #set the pivot table
+        self.set_pivotTable(value_label_I, row_variables, column_variables);
+
+        #sort rows/columns
+        if order_rowsFromTemplate_I:
+            data_listDict.order_indexFromTemplate_pivotTable(template_I=order_rowsFromTemplate_I,axis_I=0);
+        if order_columnsFromTemplate_I:
+            data_listDict.order_indexFromTemplate_pivotTable(template_I=order_columnsFromTemplate_I,axis_I=0);
+        
+        #fill values with 'NA', convert to 1d numpy array, convert to list
+        data_O = self.get_dataMatrixList(na_str_I);
+
+        #extract out rows and column variables
+        row_variables_O = self.get_rowLabels(row_variables_I);
+        row_labels_O = row_variables_O[row_label_I];
+
+        # columns are in the same order as they were initialized during the pivot
+        column_variables_O = self.get_columnLabels(column_variables_I);
+        column_labels_O = column_variables_O[column_label_I];
+
+        # check that the length of the column_labels and row_labels 
+        # are == to what they should be if only the row_label/column_label were used
+        assert(len(self.dataFrame.groupby([row_label_I]))==len(row_labels_O));
+        assert(len(self.dataFrame.groupby([column_label_I]))==len(column_labels_O));
+        ##Broken (works only if len(column_variables/row_variables)==1
+        #assert(self.pivotTable.groupby([row_label_I]).count()==len(row_labels_O));
+        #assert(self.pivotTable.groupby([column_label_I]).count()==len(column_labels_O));
+
+        #return output based on input
+        if row_variables_I and column_variables_I:
+            return data_O,row_labels_O,column_labels_O,row_variables_O,column_variables_O;
+        elif row_variables_I:
+            return data_O,row_labels_O,column_labels_O,row_variables_O;
+        elif column_variables_I:
+            return data_O,row_labels_O,column_labels_O,column_variables_O;
+        else:
+            return data_O,row_labels_O,column_labels_O;
+
