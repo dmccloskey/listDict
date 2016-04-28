@@ -360,7 +360,7 @@ class listDict():
         
         '''
         data_I = self.listDict;
-        data_O = npzeros_like(data_I);
+        data_O = np.zeros_like(data_I);
         for i,d in enumerate(data_I):
             data_O[i]=d[key_I];
         return data_O;        
@@ -494,14 +494,34 @@ class listDict():
         ngroups_O = len(uniqueGroups_O);
         return ngroups_O,uniqueGroups_O;
 
+    #Data adders
     def append_dataFrame(self,dataFrame_I):
+        '''
+        add a new data set of rows to the dataframe
+        INPUT:
+        dataFrame_I = dataFrame
+        '''
+        self.dataFrame=self.dataFrame.append(dataFrame_I);
+    def append_listDict2dataFrame(self,listDict_I):
+        '''
+        add a new data set of rows to the dataframe
+        INPUT:
+        listDict_I = listDict
+        '''
+        df = pd.DataFrame(listDict_I);
+        self.dataFrame=self.dataFrame.append(df);
+    def add_column2DataFrame(self,column_label_I,data_I):
         '''
         add a new data column to the dataFrame
         INPUT:
         column_label_I = string
         data_I = [] or numpy.array
         '''
-        self.dataFrame=self.dataFrame.append(dataFrame_I);
+        if self.dataFrame is None:
+            series = pd.Series(data=data_I);
+            self.dataFrame = series.to_frame(name=column_label_I);
+        else:
+            self.dataFrame.loc[:,column_label_I] = pd.Series(data_I, index=self.dataFrame.index);
 
     #Data reset methods
     def clear_listDict(self):
@@ -747,18 +767,6 @@ class listDict():
         '''
         row_O = dict(self.dataFrame.iloc[0]);
         return row_O;
-    def add_column2DataFrame(self,column_label_I,data_I):
-        '''
-        add a new data column to the dataFrame
-        INPUT:
-        column_label_I = string
-        data_I = [] or numpy.array
-        '''
-        if self.dataFrame is None:
-            series = pd.Series(data=data_I);
-            self.dataFrame = series.to_frame(name=column_label_I);
-        else:
-            self.dataFrame.loc[:,column_label_I] = pd.Series(data_I, index=self.dataFrame.index);
     def get_flattenedDataAndColumnLabels(self):
         '''
         return a flattened list of data and corresponding column labels
@@ -780,6 +788,12 @@ class listDict():
         columnLabels_df = pd.DataFrame(list(stacked.index))
         column_labels_O = columnLabels_df[1].get_values();
         return data_O,column_labels_O
+    def get_uniqueValues(self,column_I):
+        '''return unique values from a dataFrame column
+        INPUT:
+        column_I = string
+        '''
+        return self.dataFrame[column_I].unique();
 
     #Sorting methods
     def order_indexFromTemplate_pivotTable(self,template_I,axis_I):
