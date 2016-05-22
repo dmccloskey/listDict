@@ -550,10 +550,10 @@ class listDict():
         filename_I = string, name of the file
         '''
         data = base_importData();
-        data.read_csv(filename);
+        data.read_csv(filename_I);
         data.format_data();
-        self.add_listDict(data.data);
-        data.clear_data();
+        self.set_listDict(data.data);
+        #data.clear_data();
     def export_listDict_csv(self,filename_O):
         '''export a listDict to .csv
         INPUT:
@@ -621,6 +621,19 @@ class listDict():
         .where((pd.notnull(df)), None)
         '''
         self.listDict=self.dataFrame.where((pd.notnull(self.dataFrame)), None).to_dict('records');
+    def convert_dataFrame2DictList(self):
+        ''' 
+        convert a dataFrame to a dictionaries of lists
+        INPUT:
+        OUTPUT:
+        row_O = {}
+        .where((pd.notnull(df)), None)
+        '''
+        dictList = {};
+        columns = self.dataFrame.columns.get_values();
+        for col in columns:
+            dictList[col]=self.dataFrame[col].get_values();
+        self.dictList=dictList;
     def convert_listDict2ListDictValues(self,
                     value_key_name_I = 'value',
                     value_label_name_I = 'label',
@@ -841,6 +854,13 @@ class listDict():
         list_I = list of values
         '''
         return pd.Series(list_I).unique();
+    def convert_list2Levels(self,list_I):
+        '''Convert a list of strings to unique indexes'''
+
+        s = pd.Series(list_I)
+        levels, labels = pd.factorize(s)
+        return levels;
+
     def make_concatenatedColumn(self,
             column_label_new_I,
             column_labels_I,
