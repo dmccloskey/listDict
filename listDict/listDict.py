@@ -26,7 +26,7 @@ class listDict():
             self.record=record_I;
         else:
             self.record={};
-        if dataFrame_I: #pandas data frame representation
+        if not dataFrame_I is None: #pandas data frame representation
             self.dataFrame=dataFrame_I;
         else:
             self.dataFrame=None;
